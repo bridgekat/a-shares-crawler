@@ -92,8 +92,8 @@ if __name__ == "__main__":
         help=(
             "after downloading, also write consolidated long-format tables "
             "(one file per kind, all symbols, sorted by date) in the given "
-            "encoding(s), e.g. --export-long csv parquet; Parquet requires the "
-            "'parquet' extra. Omit to keep only the per-symbol CSVs."
+            "encoding(s), e.g. --export-long csv parquet. Omit to keep only the "
+            "per-symbol CSVs."
         ),
     )
     args = parser.parse_args()

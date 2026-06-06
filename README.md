@@ -11,12 +11,6 @@ Downloads historical A-shares market data from online sources, including daily p
 python -m pip install -e .
 ```
 
-For Parquet output (the `--export-long parquet` long-table export, see below), install the optional extra:
-
-```sh
-python -m pip install -e ".[parquet]"
-```
-
 ## Fetching data
 
 > ⚠ The crawler script is likely interrupted by anti-crawling mechanism of EastMoney, requiring manual entry of CAPTCHAs.
@@ -52,51 +46,6 @@ python -m pip install -e ".[parquet]"
 6. Whenever the script is interrupted by an exception like `remote end closed connection without response`, refresh the web page in your browser, and you should be prompted by a CAPTCHA. Solve it and re-run the script to continue the download. This should only occur when downloading daily prices.
 
 The script skips existing files. To re-download, delete the relevant files and re-run.
-
-## Long-format export (CSV / Parquet)
-
-By default the crawler writes one CSV **per symbol per data kind** under
-`<data-dir>/a_shares_history/` (e.g. `000001.SZ.daily_prices.csv`). This is convenient
-for incremental fetching, but a backtester that consumes the whole cross-section pays
-~6000 file opens and rebuilds the date axis at load time.
-
-Pass `--export-long {csv,parquet}...` to additionally write **consolidated long-format
-tables** — one file per data kind, all symbols, sorted by date. One or more formats may
-be given at once:
-
-```sh
-python -m a_shares_crawler --config config.json --data-dir DIR --export-long csv parquet
-```
-
-This is a **pure format conversion** of the per-symbol CSVs: every record is preserved
-exactly (nothing is derived, adjusted, or dropped); the rows are simply tagged with their
-`symbol`, concatenated, and sorted by `(date, symbol)`. The output is written next to
-`symbol_list.csv` as `<data-dir>/<kind>.{csv,parquet}`, so a reader can load one kind with
-a single sequential, date-ordered scan.
-
-The same conversion can be run on its own against an existing download (no network or
-config needed):
-
-```sh
-python -m a_shares_crawler.export --data-dir DIR --export-long csv parquet [--kinds daily_prices ...]
-```
-
-Long-table schema (per kind, all symbols):
-
-| Kind | Columns |
-|---|---|
-| `daily_prices` | `date`, `symbol`, `prices.{open,close,high,low,amount,volume}` |
-| `equity_structures` | `date`, `notice_date`, `symbol`, `shares.{total,circulating}` |
-| `dividends` | `date`, `notice_date`, `symbol`, `dividends.{share,cash}` |
-| `balance_sheets` / `income_statements` / `cash_flow_statements` / `indirect_statements` | `date`, `notice_date`, `symbol`, `error`, `<…>.*` (all line-item columns, kept wide) |
-
-- Columns are exactly those of the per-symbol files (see *Restructured data formats* below)
-  plus a `symbol` column; the wide statement columns are **not** melted, so any field stays
-  directly available — Parquet column projection makes reading a few of them cheap.
-- In **Parquet**, `date`/`notice_date` are stored as `date32` and `symbol` is
-  dictionary-encoded; row groups are date-contiguous so a reader can prune by date range.
-- The **CSV** export carries the identical schema as text.
-- `symbol_list.csv` is already a single consolidated table and is left unchanged.
 
 ## Restructured data formats
 
@@ -254,3 +203,19 @@ Example: `000001.SZ.indirect_statements.csv`
 - **Indirect statement fields represent year-to-date values.** To obtain annualized values, you must calculate the difference between the current report and the previous report of the same year and divide by the fraction of the year that has passed. A standalone method `utils.ytd_to_annualized` is provided for this purpose; see [example](examples/ytd_to_annualized.py).
 
 > ⚠ Many financial reports are not accompanied by an indirect cash flow statement, in which case all fields except `rhs` and `residual` are zero. The data source also seems to lack many fields in indirect statements, resulting in significant errors. Only 30% of the indirect statements have tolerable errors.
+
+## Long data formats
+
+By default the crawler writes one CSV **per symbol per data kind** under `<data-dir>/a_shares_history/`. This is convenient for incremental fetching, but using the data requires opening thousands of small files. Pass `--export-long {csv,parquet}...` to additionally write data in **long-format**: one file per data kind, all symbols, sorted by date. One or more formats may be given at once.
+
+Each data kind listed above now has an additional `symbol` column:
+
+| Kind | Columns |
+|---|---|
+| `daily_prices` | `date`, `symbol`, `prices.{open,close,high,low,amount,volume}` |
+| `equity_structures` | `date`, `notice_date`, `symbol`, `shares.{total,circulating}` |
+| `dividends` | `date`, `notice_date`, `symbol`, `dividends.{share,cash}` |
+| `balance_sheets` / `income_statements` / `cash_flow_statements` / `indirect_statements` | `date`, `notice_date`, `symbol`, `error`, `<…>.*` (all line-item columns, kept wide) |
+
+- The **CSV** long-format tables carry the identical data as above.
+- The **Parquet** long-format tables store `date`/`notice_date` as `date32` and `symbol` is dictionary-encoded; row groups are date-contiguous so a reader can prune by date range.
