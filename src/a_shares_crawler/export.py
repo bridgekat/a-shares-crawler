@@ -31,8 +31,7 @@ melted), so any field remains directly available — Parquet column projection m
 reading a few of them free. In Parquet, `date`/`notice_date` are stored as
 `date32` and `symbol` is dictionary-encoded.
 
-Requires `pyarrow` for Parquet output (`pip install -e ".[parquet]"`); CSV output
-needs only pandas.
+Parquet output uses `pyarrow` (a core dependency); CSV output needs only pandas.
 """
 
 from __future__ import annotations

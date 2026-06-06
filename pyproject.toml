@@ -7,13 +7,10 @@ name = "a-shares-crawler"
 version = "0.1.0"
 description = "Download A-shares stock market data."
 requires-python = ">=3.12"
-dependencies = ["numpy", "pandas", "requests", "tqdm"]
+dependencies = ["numpy", "pandas", "pyarrow", "requests", "tqdm"]
 
 [project.optional-dependencies]
 xt = ["xtquant"]
-# Needed only for `--export-long parquet` (long-table export). CSV export and
-# the per-symbol download work without it.
-parquet = ["pyarrow"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/a_shares_crawler"]

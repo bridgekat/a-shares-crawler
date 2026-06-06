@@ -11,12 +11,6 @@ Downloads historical A-shares market data from online sources, including daily p
 python -m pip install -e .
 ```
 
-For Parquet output (the `--export-long parquet` long-table export, see below), install the optional extra:
-
-```sh
-python -m pip install -e ".[parquet]"
-```
-
 ## Fetching data
 
 > ⚠ The crawler script is likely interrupted by anti-crawling mechanism of EastMoney, requiring manual entry of CAPTCHAs.
